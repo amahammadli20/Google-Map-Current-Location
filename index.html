@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>index</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"/>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous"/>
+
+    <style>
+      body{
+        background-color: rgb(32, 32, 56);
+        color: #fff;
+      }
+
+      body h5{
+        text-align: center;
+        color: lightblue;
+        margin-bottom: 20px;
+      }
+
+      .heading{
+        text-align: center;
+        margin-top: 20px;
+        color: lightblue;
+      }
+
+      #map{
+        border-radius: 5px;
+      }
+
+      .info-section{
+        text-align: center;
+      }
+      
+      .fa-map-pin{
+        margin-left: 10px;
+        font-size: 30px;
+        color: #EA4335;
+      }
+
+      @media only screen and (max-width: 600px) {
+        .heading{
+          font-size: 25px;
+        }
+
+        body h5{
+          font-size: 17px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1 class="heading">Your Spots on Map<i class="fas fa-map-pin"></i></h1>
+    <h5>(More Spots means More Experiences)</h5>
+    <div class="container">
+      <div id="map" style="height: 500px"></div>
+
+      <div class="info-section">
+        <p class="lead">Click the button to get your current coordinates</p>
+        <p id="demo" class="lead"></p>
+        <button onclick="getLocation()" class="btn btn-info">Try It</button>
+      </div>
+    </div>
+    
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <!-- Async script executes immediately and must be after any DOM elements used in callback. -->
+    <script
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBTOQu11PcBLOdGqRNPx786yi9QQkhrwow&callback=initMap&libraries=&v=weekly"
+      async
+    ></script>
+
+    <script>
+      $(document).ready(function () {
+        let token = localStorage.getItem('token');
+
+        $.ajax({
+          url: 'https://api.mominov.site/api/get-user-location',
+          type: 'POST',
+          headers: {
+            Accept: 'application/json',
+            Authorization: 'Bearer ' + token,
+          },
+          success: function (response) {
+            console.log('Db-dan gelen data: ', response);
+            console.log(response.success.locations);
+
+            locationsArr = response.success.locations;
+            locationsArr.forEach(function(item){
+              var itemLat = parseFloat(item.latitude);
+              var itemLng = parseFloat(item.longitude);
+
+              console.log('Get-den gelen koordinatlar: ', itemLat, itemLng);
+              console.log(typeof(itemLng))
+              
+              map = new google.maps.Map(document.getElementById("map"), {
+                  center: { 
+                      lat: itemLat, 
+                      lng: itemLng
+                  },
+                  zoom: 8,
+              });
+
+              marker = new google.maps.Marker({
+                  position: {
+                      lat: itemLat, 
+                      lng: itemLng
+                  },
+                  map
+              })
+
+
+            });
+
+          },
+          error: function (response) {
+            console.log('Get sorgusunda error bas verdi: ', response);
+          },
+        });
+      });
+      
+
+
+
+      let token = localStorage.getItem('token');
+      if (!token) {
+        location.href = 'login.html';
+      }
+      $.ajax({
+        url: 'https://api.mominov.site/api/check-token',
+        type: 'POST',
+        headers: {
+          Accept: 'application/json',
+          Authorization: 'Bearer ' + token,
+        },
+        error: function (response) {
+          location.href = 'login.html';
+        },
+      });
+      
+
+      let map;
+        let marker;
+
+        function initMap() {
+          map = new google.maps.Map(document.getElementById("map"), {
+              center: { 
+                  lat: 37.983810, 
+                  lng: 23.727539
+              },
+              zoom: 3,
+          });
+
+          marker = new google.maps.Marker({
+              position: {
+                  lat: 37.983810, 
+                  lng: 23.727539
+              },
+              map //yaranmis google map obyektini veririk(yuxardaki)
+          })
+
+        }
+
+        var x = document.getElementById("demo");
+
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition);
+
+                navigator.geolocation.getCurrentPosition((position) => {
+                    map = new google.maps.Map(document.getElementById("map"), {
+                        center: { 
+                            lat: position.coords.latitude, 
+                            lng: position.coords.longitude
+                        },
+                        zoom: 8,
+                    });
+
+                    marker = new google.maps.Marker({
+                        position: {
+                            lat: position.coords.latitude, 
+                            lng: position.coords.longitude
+                        },
+                        map
+                    })
+
+
+                    var latitude = position.coords.latitude;
+                    var longitude = position.coords.longitude;
+
+                    $.ajax({
+                      url: 'https://api.mominov.site/api/add-location',
+                      type: 'POST',
+                      headers: {
+                        Accept: 'application/json',
+                        Authorization: 'Bearer ' + token,
+                      },
+                      data: { 
+                        latitude, 
+                        longitude
+                      },
+                      success: function (res) {
+                        console.log('Emeliyyat ugurla bas tutdu: ', res);
+                      },
+                      error: function (res) {
+                        console.log("Error bas verdi: ", res);
+                      },
+                    });
+
+                });
+
+            } else { 
+                x.innerHTML = "Geolocation is not supported by this browser.";
+            }
+        }
+
+        function showPosition(position) {
+            x.innerHTML = "Latitude: " + position.coords.latitude + 
+            "<br>Longitude: " + position.coords.longitude;
+        }
+
+    </script>
+  </body>
+</html>
